@@ -3,9 +3,13 @@ package com.bigdata.ct.producer.bean;
 import com.bigdata.ct.common.bean.DataIn;
 import com.bigdata.ct.common.bean.DataOut;
 import com.bigdata.ct.common.bean.Producer;
+import com.bigdata.ct.common.util.DateUtil;
+import com.bigdata.ct.common.util.NumberUtil;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 /**
  * 本地文件生产者
@@ -13,7 +17,7 @@ import java.util.List;
 public class LocalFileProducer implements Producer {
     private DataIn in;
     private DataOut out;
-    private volatile boolean flag;
+    private volatile boolean flag = true;
 
     public void setIn(DataIn in) {
         this.in = in;
@@ -26,24 +30,54 @@ public class LocalFileProducer implements Producer {
     /**
      * 生产数据
      */
-    public void producer() {
+    public void producer() throws InterruptedException {
         //读取通讯录数据
-
-//        while ( flag ){
+        Contact call1 = null;
+        Contact call2 = null;
+        while ( flag ){
             try {
                 List<Contact> contacts = in.read(Contact.class);
-                for (Contact contact: contacts){
-                    System.out.println(contact);
+//                for (Contact contact: contacts){
+//                    System.out.println(contact);
+//                }
+                //从通讯录中随机查找2个电话号码（主叫，被叫）
+                int call1Index = new Random().nextInt(contacts.size());
+                int call2Index;
+                while ( true ){
+                    call2Index = new Random().nextInt(contacts.size());
+                    if ( call2Index != call1Index ) {
+                        break;
+                    }
                 }
+                call1 = contacts.get(call1Index);
+                call2 = contacts.get(call2Index);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            //从通讯录中随机查找2个电话号码（主叫，被叫）
-            //生成随机的通话时间//生成随机的通话时长
+
+            //生成随机的通话时间
+            String startDate = "20180101000000";
+            String endDate = "20190101000000";
+
+            long startTime = DateUtil.parse(startDate, "yyyyMMddHHmmss").getTime();
+            long endTime = DateUtil.parse(endDate, "yyyyMMddHHmmss").getTime();
+
+            long calltime = startTime + (long)((endTime - startTime) * Math.random());
+            String callTimeString = DateUtil.format(new Date(calltime), "yyyyMMddHHmmss");
+
+            // 生成随机的通话时长
+            String duration = NumberUtil.format(new Random().nextInt(3000), 4);
+
             //生成通话记录
+            Calllog calllog = new Calllog(call1.getTel(), call2.getTel(), callTimeString, duration);
+            System.out.println(calllog);
+
             //将通话记录刷写到数据文件中
-//        }
+            out.write(calllog);
+
+            Thread.sleep(500);
+        }
 
     }
 

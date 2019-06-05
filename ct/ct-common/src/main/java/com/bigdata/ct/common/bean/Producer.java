@@ -11,5 +11,5 @@ public interface Producer extends Closeable {
     /**
      * 生产数据
      */
-    public void producer();
+    public void producer() throws InterruptedException;
 }
